@@ -1,0 +1,44 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: e2e-task
+spec:
+  params:
+    - description: The Trusted Artifact URI pointing to the artifact with the application source code.
+      name: SOURCE_ARTIFACT
+      type: string
+    - description: The script to execute the e2e tests
+      name: e2e-tests-script
+      type: string
+  sidecars:
+    - image: quay.io/redhat-services-prod/hcc-platex-services-tenant/insights-chrome-dev:latest
+      name: chrome-dev
+      securityContext:
+        privileged: false
+      volumeMounts:
+        - name: workdir
+          mountPath: /var/workdir
+  stepTemplate:
+    volumeMounts:
+      - mountPath: /var/workdir
+        name: workdir
+        readOnly: false
+  steps:
+    - name: run-learning-resources
+      image: $(params.SOURCE_ARTIFACT)
+      args:
+        - use
+        - $(params.SOURCE_ARTIFACT)=/var/workdir
+    - image: registry.access.redhat.com/ubi8/nodejs-22
+      workingDir: /var/workdir
+      name: e2e-tests
+      securityContext:
+        runAsUser: 0
+      script: $(params.e2e-tests-script)
+  volumes:
+     # New volume to store a copy of the source code accessible only to this Task.
+     - name: workdir
+       emptyDir: { }
+#  workspaces:
+#    - name: e2e-workspace
+
