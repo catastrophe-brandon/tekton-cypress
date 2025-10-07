@@ -1,0 +1,53 @@
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: e2e-pipeline
+spec:
+  params:
+    - name: branch-name
+      value: main
+    - name: repo-url
+      value: https://github.com/RedHatInsights/learning-resources.git
+    - name: SOURCE_ARTIFACT
+      value: quay.io/redhat-services-prod/hcc-platex-services-tenant/learning-resources:latest
+  tasks:
+    - name: fetch-source
+      taskRef:
+        name: git-clone
+        workspaces:
+          - name: output
+            workspace: shared-workspace
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.branch-name)
+    - name: e2e-test-run
+      taskRef:
+        name: e2e-task
+      params:
+        - name: SOURCE_ARTIFACT
+          value: quay.io/redhat-services-prod/hcc-platex-services-tenant/learning-resources:latest
+        - name: e2e-tests-script
+          value: |
+            # TODO: add logic to wait until the server and proxy are ready
+            # Create the webpack config file
+            cat << EOF > webpack.cy.
+            import { defineConfig } from "cypress";
+            default defineConfig({
+                component: {
+                    specPattern: 'cypress/component/**/*.cy.{js,jsx,ts,tsx}',
+                devServer: {
+                    framework: "react",
+                    bundler: "webpack",
+                    webpackConfig: require( './config/webpack.cy.js'),
+                },
+               },
+            });
+            EOF
+            pwd
+            ls -la
+            sleep 20
+            echo "Running e2e tests with Cypress"
+            npx cypress run --e2e

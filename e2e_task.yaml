@@ -1,14 +1,18 @@
+---
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: e2e-task
 spec:
   params:
-    - description: The Trusted Artifact URI pointing to the artifact with the application source code.
+    - description: The Trusted Artifact URI.
       name: SOURCE_ARTIFACT
       type: string
     - description: The script to execute the e2e tests
       name: e2e-tests-script
+      type: string
+    - description: workspace with the test source
+      name: TEST_WORKSPACE_NAME
       type: string
   sidecars:
     - image: quay.io/redhat-user-workloads/hcc-platex-services-tenant/frontend-development-proxy:latest
@@ -34,24 +38,12 @@ spec:
         name: workdir
         readOnly: false
   steps:
-    - image: $(params.SOURCE_ARTIFACT)
-      name: copy-source-files
-      workingDir: /var/workdir
-      securityContext:
-        runAsUser: 0
-      script: |
-        #!/bin/sh
-        set -e
-        echo "Copying source files from image to shared volume..."
-        # Copy all files from the application directory in the image to /var/workdir
-        # Adjust the source path based on where files are located in your learning-resources image
-        cp -r /opt/app-root/src/* /var/workdir/ || cp -r /app/* /var/workdir/ || cp -r /* /var/workdir/
-        echo "Files copied successfully"
-        ls -la /var/workdir
-    - image: cypress/included:15.3.0
-      workingDir: /var/workdir
+    - image: docker.io/cypress/included:latest
       name: e2e-tests
       securityContext:
         runAsUser: 0
       script: $(params.e2e-tests-script)
-
+  workspaces:
+    - name: $(params.TEST_WORKSPACE_NAME)
+      description: workspace with cloned source
+      optional: false
