@@ -20,22 +20,34 @@ spec:
           mountPath: /var/workdir
     - name: run-learning-resources
       image: $(params.SOURCE_ARTIFACT)
-      args:
-        - use
-        - $(params.SOURCE_ARTIFACT)=/var/workdir
+      securityContext:
+        privileged: false
+      volumeMounts:
+        - name: workdir
+          mountPath: /var/workdir
   stepTemplate:
     volumeMounts:
       - mountPath: /var/workdir
         name: workdir
         readOnly: false
   steps:
-    # - image: cypress/included:cypress-15.3.0-node-22.20.0-chrome-140.0.7339.207-1-ff-143.0.1-edge-140.0.3485.81-1
     - image: $(params.SOURCE_ARTIFACT)
+      name: copy-source-files
+      workingDir: /var/workdir
+      securityContext:
+        runAsUser: 0
+      script: |
+        #!/bin/sh
+        set -e
+        echo "Copying source files from image to shared volume..."
+        # Copy all files from the application directory in the image to /var/workdir
+        # Adjust the source path based on where files are located in your learning-resources image
+        cp -r /opt/app-root/src/* /var/workdir/ || cp -r /app/* /var/workdir/ || cp -r /* /var/workdir/
+        echo "Files copied successfully"
+        ls -la /var/workdir
+    - image: cypress/included:15.3.0
       workingDir: /var/workdir
       name: e2e-tests
-      args:
-        - user
-        - $(params.SOURCE_ARTIFACT)=/var/workdir
       securityContext:
         runAsUser: 0
       script: $(params.e2e-tests-script)
