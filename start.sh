@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # check status and start minikube if it's not running
-minikube start --driver=podman --container-runtime=cri-o
+minikube start --driver=podman 
 
 # install tekton
 kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml

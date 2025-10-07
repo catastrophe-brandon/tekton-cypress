@@ -8,7 +8,27 @@ spec:
       value: quay.io/redhat-services-prod/hcc-platex-services-tenant/learning-resources:latest
     - name: e2e-tests-script
       value: |
-         npm run start &
+         # TODO: script to wait until the server and proxy are ready
+         # Create the webpack config file
+         cat << EOF > webpack.cy.ts
+         import { defineConfig } from "cypress";
+
+
+         export default defineConfig({
+             component: {
+                 specPattern: 'cypress/component/**/*.cy.{js,jsx,ts,tsx}',
+             devServer: {
+                 framework: "react",
+                 bundler: "webpack",
+                 webpackConfig: require( './config/webpack.cy.js'),
+             },
+            },
+         });
+         EOF
+         pwd
+         ls -la
+         sleep 20
+         echo "Running e2e tests with Cypress"
          npx cypress run --e2e
   taskRef:
     name: e2e-task

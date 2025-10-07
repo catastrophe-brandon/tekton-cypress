@@ -11,34 +11,32 @@ spec:
       name: e2e-tests-script
       type: string
   sidecars:
-    - image: quay.io/redhat-services-prod/hcc-platex-services-tenant/insights-chrome-dev:latest
-      name: chrome-dev
+    - image: quay.io/redhat-user-workloads/hcc-platex-services-tenant/frontend-development-proxy:latest
+      name: frontend-dev-proxy
       securityContext:
         privileged: false
       volumeMounts:
         - name: workdir
           mountPath: /var/workdir
+    - name: run-learning-resources
+      image: $(params.SOURCE_ARTIFACT)
+      args:
+        - use
+        - $(params.SOURCE_ARTIFACT)=/var/workdir
   stepTemplate:
     volumeMounts:
       - mountPath: /var/workdir
         name: workdir
         readOnly: false
   steps:
-    - name: run-learning-resources
-      image: $(params.SOURCE_ARTIFACT)
-      args:
-        - use
-        - $(params.SOURCE_ARTIFACT)=/var/workdir
-    - image: registry.access.redhat.com/ubi8/nodejs-22
+    # - image: cypress/included:cypress-15.3.0-node-22.20.0-chrome-140.0.7339.207-1-ff-143.0.1-edge-140.0.3485.81-1
+    - image: $(params.SOURCE_ARTIFACT)
       workingDir: /var/workdir
       name: e2e-tests
+      args:
+        - user
+        - $(params.SOURCE_ARTIFACT)=/var/workdir
       securityContext:
         runAsUser: 0
       script: $(params.e2e-tests-script)
-  volumes:
-     # New volume to store a copy of the source code accessible only to this Task.
-     - name: workdir
-       emptyDir: { }
-#  workspaces:
-#    - name: e2e-workspace
 
