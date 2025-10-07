@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 
 # check status and start minikube if it's not running
-minikube start --driver=podman 
+# More disk space needed for running e2e tests, Tekton, etc.
+minikube start --driver=podman --container-runtime=cri-o --disk-size=40g
 
-# install tekton
-kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
-
-# This will show `1/1` under the READY column once tekton is available
-kubectl get pods --namespace tekton-pipelines --watch
+minikube status
