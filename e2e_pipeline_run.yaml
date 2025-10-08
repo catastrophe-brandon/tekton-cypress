@@ -1,0 +1,15 @@
+---
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: e2e-pipeline-run
+spec:
+  params:
+    - name: branch-name
+      value: main
+    - name: repo-url
+      value: https://github.com/RedHatInsights/learning-resources.git
+    - name: SOURCE_ARTIFACT
+      value: quay.io/redhat-services-prod/hcc-platex-services-tenant/learning-resources:latest
+  pipelineRef:
+    name: e2e-pipeline

@@ -6,18 +6,20 @@ metadata:
 spec:
   params:
     - name: branch-name
-      value: main
+      type: string
+      description: Branch within the source repository
     - name: repo-url
-      value: https://github.com/RedHatInsights/learning-resources.git
+      type: string
+      description: URL of the source repository
     - name: SOURCE_ARTIFACT
-      value: quay.io/redhat-services-prod/hcc-platex-services-tenant/learning-resources:latest
+      description: URI of the trusted artifact containing the built source
   tasks:
     - name: fetch-source
       taskRef:
         name: git-clone
-        workspaces:
-          - name: output
-            workspace: shared-workspace
+      workspaces:
+        - name: output
+          workspace: shared-workspace
       params:
         - name: url
           value: $(params.repo-url)
@@ -28,7 +30,7 @@ spec:
         name: e2e-task
       params:
         - name: SOURCE_ARTIFACT
-          value: quay.io/redhat-services-prod/hcc-platex-services-tenant/learning-resources:latest
+          value: $(params.SOURCE_ARTIFACT)
         - name: e2e-tests-script
           value: |
             # TODO: add logic to wait until the server and proxy are ready
