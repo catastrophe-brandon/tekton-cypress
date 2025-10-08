@@ -11,9 +11,6 @@ spec:
     - description: The script to execute the e2e tests
       name: e2e-tests-script
       type: string
-    - description: workspace with the test source
-      name: TEST_WORKSPACE_NAME
-      type: string
   sidecars:
     - image: quay.io/redhat-user-workloads/hcc-platex-services-tenant/frontend-development-proxy:latest
       name: frontend-dev-proxy
@@ -44,6 +41,4 @@ spec:
         runAsUser: 0
       script: $(params.e2e-tests-script)
   workspaces:
-    - name: $(params.TEST_WORKSPACE_NAME)
-      description: workspace with cloned source
-      optional: false
+    - name: shared-code-workspace

@@ -6,10 +6,13 @@ metadata:
 spec:
   params:
     - name: branch-name
-      value: main
+      value: master
     - name: repo-url
       value: https://github.com/RedHatInsights/learning-resources.git
     - name: SOURCE_ARTIFACT
       value: quay.io/redhat-services-prod/hcc-platex-services-tenant/learning-resources:latest
+  workspaces:
+    - name: shared-code-workspace
+      emptyDir: {}
   pipelineRef:
     name: e2e-pipeline

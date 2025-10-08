@@ -13,13 +13,16 @@ spec:
       description: URL of the source repository
     - name: SOURCE_ARTIFACT
       description: URI of the trusted artifact containing the built source
+  workspaces:
+    - name: shared-code-workspace
+      description: Workspace for passing repo source to the test run task
   tasks:
     - name: fetch-source
       taskRef:
         name: git-clone
       workspaces:
         - name: output
-          workspace: shared-workspace
+          workspace: shared-code-workspace
       params:
         - name: url
           value: $(params.repo-url)
@@ -28,6 +31,11 @@ spec:
     - name: e2e-test-run
       taskRef:
         name: e2e-task
+      workspaces:
+        - name: shared-code-workspace
+          workspace: shared-code-workspace
+      runAfter:
+        - fetch-source
       params:
         - name: SOURCE_ARTIFACT
           value: $(params.SOURCE_ARTIFACT)
@@ -35,7 +43,10 @@ spec:
           value: |
             # TODO: add logic to wait until the server and proxy are ready
             # Create the webpack config file
-            cat << EOF > webpack.cy.
+            ls -la /workspace/
+            ls -la /workspace/shared-code-workspace/
+            ls -la /workspace/output/
+            cat << EOF > /workspace/shared-code-workspace/cypress.config.ts
             import { defineConfig } from "cypress";
             default defineConfig({
                 component: {
@@ -48,8 +59,7 @@ spec:
                },
             });
             EOF
-            pwd
-            ls -la
-            sleep 20
+            sleep 10
+            cd /workspace/shared-code-workspace/
             echo "Running e2e tests with Cypress"
-            npx cypress run --e2e
+            npx cypress run -c cypress.config.ts --e2e
