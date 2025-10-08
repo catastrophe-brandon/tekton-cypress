@@ -42,3 +42,4 @@ spec:
       script: $(params.e2e-tests-script)
   workspaces:
     - name: shared-code-workspace
+      mountPath: /workspace/output
