@@ -26,3 +26,7 @@ spec:
               storage: 2Gi
   pipelineRef:
     name: e2e-pipeline
+    taskRunSpecs:
+      - pipelineTaskName: e2e-test-run
+        podTemplate:
+          shareProcessNamespace: true
