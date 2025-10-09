@@ -42,24 +42,8 @@ spec:
         - name: e2e-tests-script
           value: |
             # TODO: add logic to wait until the server and proxy are ready
-            # Create the webpack config file
-            ls -la /workspace/
-            ls -la /workspace/shared-code-workspace/
-            ls -la /workspace/output/
-            cat << EOF > /workspace/shared-code-workspace/cypress.config.ts
-            import { defineConfig } from "cypress";
-            default defineConfig({
-                component: {
-                    specPattern: 'cypress/component/**/*.cy.{js,jsx,ts,tsx}',
-                devServer: {
-                    framework: "react",
-                    bundler: "webpack",
-                    webpackConfig: require( './config/webpack.cy.js'),
-                },
-               },
-            });
-            EOF
+            cd /workspace/output/
+            ls -la
             sleep 10
-            cd /workspace/shared-code-workspace/
             echo "Running e2e tests with Cypress"
-            npx cypress run -c cypress.config.ts --e2e
+            npx cypress run -C cypress.config.ts --e2e
