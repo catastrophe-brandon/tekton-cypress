@@ -35,8 +35,15 @@ spec:
         name: workdir
         readOnly: false
   steps:
-    - image: docker.io/cypress/included:latest
+    - image: quay.io/btweed/cypress:latest
       name: e2e-tests
+      computeResources:
+        requests:
+          cpu: "4"
+          memory: "4Gi"
+        limits:
+          cpu: "4"
+          memory: "8Gi"
       securityContext:
         runAsUser: 0
       script: $(params.e2e-tests-script)
