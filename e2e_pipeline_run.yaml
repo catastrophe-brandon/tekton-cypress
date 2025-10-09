@@ -29,4 +29,5 @@ spec:
   taskRunSpecs:
     - pipelineTaskName: e2e-test-run
       podTemplate:
-        shareProcessNamespace: true
+        spec:
+          shareProcessNamespace: true
