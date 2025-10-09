@@ -4,8 +4,6 @@ kind: Task
 metadata:
   name: e2e-task
 spec:
-  podTemplate:
-    shareProcessNamespace: true
   params:
     - description: The Trusted Artifact URI.
       name: SOURCE_ARTIFACT

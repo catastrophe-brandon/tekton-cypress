@@ -46,4 +46,4 @@ spec:
             ls -la
             sleep 10
             echo "Running e2e tests with Cypress"
-            npx cypress run -C cypress.config.ts --e2e
+            exec npx cypress run -C cypress.config.ts --e2e
