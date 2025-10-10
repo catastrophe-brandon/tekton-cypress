@@ -1,31 +1,34 @@
 # Local Minikube Tekton
 
-This repository contains Tekton tasks for running E2E Cypress tests locally using Minikube.
+This repository contains a Tekton pipeline for running E2E Cypress tests locally using Minikube.
 
 ## Overview
 
 The project sets up a local Tekton pipeline environment to test the learning-resources application with E2E tests. The testing environment uses:
 
-- **learning-resources container**: Contains the application code with developer changes
+- **git-clone task**: Clones the learning-resources repository
+- **learning-resources sidecar**: Runs the application with developer changes
 - **frontend-proxy sidecar**: Provides proxy access to resources from the stage environment
 - **Cypress**: Executes E2E tests against the running application
 
 ## Architecture
 
-The Tekton task (`e2e_task.yaml`) orchestrates:
+The Tekton pipeline (`e2e_pipeline.yaml`) orchestrates:
 
-1. **Copy source files**: Extracts application source code from the learning-resources image to a shared volume
-2. **Run E2E tests**: Executes Cypress tests from the shared volume against the running application
-3. **Sidecars**:
-   - `frontend-dev-proxy`: Proxies stage environment resources
-   - `run-learning-resources`: Runs the application with developer changes
+1. **fetch-source**: Clones the source repository using the git-clone task
+2. **e2e-test-run**: Executes the e2e-task which:
+   - Runs Cypress tests from the cloned source
+   - Uses sidecars:
+     - `frontend-dev-proxy`: Proxies stage environment resources
+     - `run-learning-resources`: Runs the application from SOURCE_ARTIFACT image
 
 ## Files
 
+- `e2e_pipeline.yaml`: Tekton Pipeline definition
+- `e2e_pipeline_run.yaml`: PipelineRun instance with specific parameters
 - `e2e_task.yaml`: Tekton Task definition for E2E testing
-- `e2e_task_run.yaml`: TaskRun instance with specific parameters
 - `start.sh`: Initializes Minikube with podman driver and installs Tekton
-- `run.sh`: Applies the task/taskrun and displays logs
+- `run.sh`: Applies the pipeline/pipelinerun and displays logs
 
 ## Prerequisites
 
@@ -48,18 +51,41 @@ The Tekton task (`e2e_task.yaml`) orchestrates:
 
 ## Configuration
 
-### Task Parameters
+### Pipeline Parameters
 
+- `branch-name`: Git branch to clone (default: `master`)
+- `repo-url`: Repository URL (default: `https://github.com/RedHatInsights/learning-resources.git`)
 - `SOURCE_ARTIFACT`: Container image containing the learning-resources application (default: `quay.io/redhat-services-prod/hcc-platex-services-tenant/learning-resources:latest`)
-- `e2e-tests-script`: Shell script that configures and runs Cypress tests
+- `E2E_USER`: Username for E2E test authentication
+- `E2E_PASSWORD`: Password for E2E test authentication
+
+### Workspaces
+
+- `shared-code-workspace`: PersistentVolumeClaim (2Gi) that persists cloned source code between pipeline tasks
+  - Mounted at `/workspace/output` in the git-clone task and e2e-task
+  - Uses `volumeClaimTemplate` for automatic PVC creation
 
 ### Volume Mounts
 
-All components share a `/var/workdir` volume where:
-- Source files are copied from the learning-resources image
-- Cypress configuration is generated
-- Tests are executed
+The e2e-task uses `/var/workdir` as an emptyDir volume shared between:
+- The Cypress test step
+- The frontend-dev-proxy sidecar
+- The run-learning-resources sidecar
 
-## Customization
+## Important Notes
 
-If your learning-resources image stores files in a non-standard location, update the `copy-source-files` step in `e2e_task.yaml` (line 45) to specify the correct source path.
+### Minikube Disk Space
+
+Minikube's default disk size (20GB) may be insufficient. Start Minikube with increased disk space:
+
+```bash
+minikube delete
+minikube start --driver=podman --disk-size=40g
+```
+
+### Cypress Configuration
+
+The Cypress step runs as non-root user (1001) and reinstalls Cypress on each run to ensure proper permissions. The test script:
+- Installs Cypress binary
+- Runs tests from `/workspace/output` (the cloned source)
+- Uses the `cypress.config.ts` from the repository
