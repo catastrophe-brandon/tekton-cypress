@@ -34,8 +34,10 @@ spec:
       - mountPath: /var/workdir
         name: workdir
         readOnly: false
+      - mountPath: /dev/shm
+        name: dshm
   steps:
-    - image: quay.io/redhat-user-workloads/rh-platform-experien-tenant/cypress-e2e-image/cypress-e2e-image:a5fd431659e3
+    - image: quay.io/redhat-user-workloads/rh-platform-experien-tenant/cypress-e2e-image/cypress-e2e-image:af9f17cb332f8e4a7f2e629bccbeeb1451490566
       name: e2e-tests
       computeResources:
         requests:
