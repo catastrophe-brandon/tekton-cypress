@@ -47,7 +47,7 @@ spec:
           cpu: "4000m"
           memory: "8Gi"
       securityContext:
-        runAsUser: 1001
+        runAsUser: 0
       script: $(params.e2e-tests-script)
   workspaces:
     - name: shared-code-workspace
