@@ -42,12 +42,9 @@ spec:
         - name: e2e-tests-script
           value: |
             # TODO: add logic to wait until the server and proxy are ready
-            export DBUS_SESSION_BUS_ADDRESS=/dev/null
-            export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/dev/null
-            export QT_QPA_PLATFORM=offscreen
-            export CYPRESS_CACHE_FOLDER=/var/workdir/.cypress-cache
             cd /workspace/output/
-            ls -la
             sleep 10
+            echo "Reinstalling cypress"
+            cypress install
             echo "Running e2e tests with Cypress"
-            exec npx cypress run -C cypress.config.ts --e2e
+            cypress run -C cypress.config.ts --e2e
