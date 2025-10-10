@@ -30,5 +30,5 @@ echo "Waiting for pods to spin up..."
 sleep 10
 
 echo "== PipelineRun Logs ==="
-tkn pipelinerun logs
+tkn pipelinerun logs -f
 
