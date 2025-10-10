@@ -44,7 +44,5 @@ spec:
             # TODO: add logic to wait until the server and proxy are ready
             cd /workspace/output/
             sleep 10
-            echo "Reinstalling cypress"
-            cypress install
             echo "Running e2e tests with Cypress"
-            cypress run -C cypress.config.ts --e2e
+            npx cypress run -C cypress.config.ts --e2e
