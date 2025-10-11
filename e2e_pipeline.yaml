@@ -43,6 +43,12 @@ spec:
           value: |
             # TODO: add logic to wait until the server and proxy are ready
             cd /workspace/output/
-            sleep 10
+            whoami
+            npx cypress install
+            set -x
+            ls -la /cypress_cache/15.4.0
+            ls -la /cypress_cache/15.4.0/Cypress
+            set +x
+            npx cypress cache clear
             echo "Running e2e tests with Cypress"
             npx cypress run -C cypress.config.ts --e2e
