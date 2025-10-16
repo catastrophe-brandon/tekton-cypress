@@ -38,8 +38,7 @@ spec:
         name: workdir
         readOnly: false
   steps:
-    - image: mcr.microsoft.com/playwright:v1.50.0-noble
-#    - image: quay.io/redhat-user-workloads/rh-platform-experien-tenant/cypress-e2e-image/cypress-e2e-image:af9f17cb332f8e4a7f2e629bccbeeb1451490566
+    - image: quay.io/btweed/playwright_e2e:latest
       env:
         - name: HTTP_PROXY
           value: $(params.HTTP_PROXY)
