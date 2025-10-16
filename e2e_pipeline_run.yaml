@@ -12,9 +12,11 @@ spec:
     - name: SOURCE_ARTIFACT
       value: quay.io/redhat-services-prod/hcc-platex-services-tenant/learning-resources:latest
     - name: E2E_USER
-      value: $(E2E_USER)
+      value: "${E2E_USER}"
     - name: E2E_PASSWORD
-      value: $(E2E_PASSWORD)
+      value: "${E2E_PASSWORD}"
+    - name: e2e_proxy
+      value: "${E2E_PROXY_URL}"
   workspaces:
     - name: shared-code-workspace
       volumeClaimTemplate:

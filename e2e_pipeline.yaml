@@ -13,7 +13,7 @@ spec:
       description: URL of the source repository
     - name: SOURCE_ARTIFACT
       description: URI of the trusted artifact containing the built source
-    - name: HTTP_PROXY
+    - name: e2e_proxy
       description: http proxy
   workspaces:
     - name: shared-code-workspace
@@ -42,7 +42,7 @@ spec:
         - name: SOURCE_ARTIFACT
           value: $(params.SOURCE_ARTIFACT)
         - name: HTTP_PROXY
-          value: $(params.HTTP_PROXY)
+          value: $(params.e2e_proxy)
         - name: e2e-tests-script
           value: |
             # TODO: add logic to wait until the server and proxy are ready
