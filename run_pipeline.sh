@@ -10,6 +10,11 @@ if [ ! -n "${E2E_PASSWORD}" ]; then
 	exit 1
 fi
 
+if [ ! -n "${E2E_PROXY_URL}" ]; then
+	echo "Set E2E_PROXY_URL"
+	exit 1
+fi
+
 echo "Clearing out previous task run (if present)"
 yes | tkn taskrun delete e2e-task-run
 yes | tkn pipelinerun delete e2e-pipeline-run
@@ -23,7 +28,7 @@ echo "Apply E2E Pipeline"
 kubectl apply --filename e2e_pipeline.yaml
 
 echo "Applying E2E PipelineRun"
-kubectl apply --filename e2e_pipeline_run.yaml
+envsubst < e2e_pipeline_run.yaml | kubectl apply --filename -
 
 # View the logs of recent task runs
 echo "Waiting for pods to spin up..."
