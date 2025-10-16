@@ -50,9 +50,6 @@ spec:
             echo "HTTPS_PROXY is ${HTTPS_PROXY}"
             cd /workspace/output
             whoami
-            # npm is fickle with cypress and perms, let's try playwright instead
-            npm cache clean --force
             npm install
-            npx playwright install
             npx playwright test playwright/*
            
