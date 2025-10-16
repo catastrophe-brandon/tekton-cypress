@@ -13,6 +13,8 @@ spec:
       description: URL of the source repository
     - name: SOURCE_ARTIFACT
       description: URI of the trusted artifact containing the built source
+    - name: HTTP_PROXY
+      description: http proxy
   workspaces:
     - name: shared-code-workspace
       description: Workspace for passing repo source to the test run task
@@ -39,9 +41,13 @@ spec:
       params:
         - name: SOURCE_ARTIFACT
           value: $(params.SOURCE_ARTIFACT)
+        - name: HTTP_PROXY
+          value: $(params.HTTP_PROXY)
         - name: e2e-tests-script
           value: |
             # TODO: add logic to wait until the server and proxy are ready
+            echo "HTTP_PROXY is ${HTTP_PROXY}"
+            echo "HTTPS_PROXY is ${HTTPS_PROXY}"
             cd /workspace/output
             whoami
             # npm is fickle with cypress and perms, let's try playwright instead

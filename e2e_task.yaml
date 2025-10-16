@@ -11,6 +11,9 @@ spec:
     - description: The script to execute the e2e tests
       name: e2e-tests-script
       type: string
+    - description: http proxy config
+      name: HTTP_PROXY
+      type: string
   sidecars:
     - image: quay.io/redhat-user-workloads/hcc-platex-services-tenant/frontend-development-proxy:latest
       name: frontend-dev-proxy
@@ -37,6 +40,11 @@ spec:
   steps:
     - image: mcr.microsoft.com/playwright:v1.50.0-noble
 #    - image: quay.io/redhat-user-workloads/rh-platform-experien-tenant/cypress-e2e-image/cypress-e2e-image:af9f17cb332f8e4a7f2e629bccbeeb1451490566
+      env:
+        - name: HTTP_PROXY
+          value: $(params.HTTP_PROXY)
+        - name: HTTPS_PROXY
+          value: $(params.HTTP_PROXY)
       name: e2e-tests
       computeResources:
         requests:
