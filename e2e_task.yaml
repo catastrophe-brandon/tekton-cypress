@@ -14,6 +14,12 @@ spec:
     - description: http proxy config
       name: HTTP_PROXY
       type: string
+    - description: Test user
+      name: E2E_USER
+      type: string
+    - description: Test user password
+      name: E2E_PASSWORD
+      type: string
   sidecars:
     - image: quay.io/redhat-user-workloads/hcc-platex-services-tenant/frontend-development-proxy:latest
       name: frontend-dev-proxy
@@ -44,6 +50,10 @@ spec:
           value: $(params.HTTP_PROXY)
         - name: HTTPS_PROXY
           value: $(params.HTTP_PROXY)
+        - name: E2E_USER
+          value: $(params.E2E_USER)
+        - name: E2E_PASSWORD
+          value: $(params.E2E_PASSWORD)
       name: e2e-tests
       computeResources:
         requests:
