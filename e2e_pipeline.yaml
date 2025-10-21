@@ -16,7 +16,9 @@ spec:
     - name: e2e_proxy
       description: http proxy
     - name: E2E_USER
+      description: Test automation username
     - name: E2E_PASSWORD
+      description: Test automation password
   workspaces:
     - name: shared-code-workspace
       description: Workspace for passing repo source to the test run task
@@ -54,7 +56,9 @@ spec:
             # TODO: add logic to wait until the server and proxy are ready
             echo "HTTP_PROXY is ${HTTP_PROXY}"
             echo "HTTPS_PROXY is ${HTTPS_PROXY}"
+            # host stage.foo.redhat.com
             cd /workspace/output
+            sleep 2000
             whoami
             npm install
             npx playwright test playwright/*

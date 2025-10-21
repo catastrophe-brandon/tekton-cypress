@@ -54,6 +54,8 @@ spec:
           value: $(params.E2E_USER)
         - name: E2E_PASSWORD
           value: $(params.E2E_PASSWORD)
+        - name: NO_PROXY
+          value: "stage.foo.redhat.com"
       name: e2e-tests
       computeResources:
         requests:
