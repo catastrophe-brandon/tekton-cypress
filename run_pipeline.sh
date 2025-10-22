@@ -21,6 +21,9 @@ yes | tkn pipelinerun delete e2e-pipeline-run
 
 set -e
 
+echo "Applying caddy config for insights-chrome-dev"
+kubectl apply --filename caddy_config.yaml
+
 echo "Applying E2E task definition"
 kubectl apply --filename e2e_task.yaml
 
