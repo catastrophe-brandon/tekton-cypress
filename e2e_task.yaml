@@ -28,6 +28,13 @@ spec:
       volumeMounts:
         - name: workdir
           mountPath: /var/workdir
+    - image: quay.io/redhat-services-prod/hcc-platex-services-tenant/insights-chrome-dev:latest
+      name: insights-chrome-dev
+      securityContext:
+        privileged: false
+      volumeMounts:
+        - name: workdir
+          mountPath: /var/workdir
     - name: run-learning-resources
       image: $(params.SOURCE_ARTIFACT)
       securityContext:
