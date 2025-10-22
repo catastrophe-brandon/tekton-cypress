@@ -7,10 +7,13 @@
 set -e
 
 # If you are not logged into quay.io with podman, this will not work
-podman pull docker.io/cypress/included:latest
-podman push $(podman images cypress -q) quay.io/btweed/cypress
-podman pull quay.io/btweed/cypress:latest
-minikube image load quay.io/btweed/cypress:latest
+#podman pull docker.io/cypress/included:latest
+#podman push $(podman images cypress -q) quay.io/btweed/cypress
+#podman pull quay.io/btweed/cypress:latest
+#minikube image load quay.io/btweed/cypress:latest
+
+podman pull quay.io/btweed/playwright_e2e:latest
+minikube image load quay.io/btweed/playwright_e2e:latest
 
 # TODO: add code to pull the minikube dashboard images and load them into the cluster
 
