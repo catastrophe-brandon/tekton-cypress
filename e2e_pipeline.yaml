@@ -56,7 +56,8 @@ spec:
             # TODO: add logic to wait until the server and proxy are ready
             echo "HTTP_PROXY is ${HTTP_PROXY}"
             echo "HTTPS_PROXY is ${HTTPS_PROXY}"
-            # host stage.foo.redhat.com
+            # Use getend because the `host` command ignores /etc/hosts
+            getent hosts stage.foo.redhat.com
             cd /workspace/output
             sleep 2000
             whoami
