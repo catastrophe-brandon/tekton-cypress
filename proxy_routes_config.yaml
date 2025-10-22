@@ -1,0 +1,14 @@
+---
+# Custom routes configuration for the frontend-development-proxy container
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-proxy-routes
+data:
+  routes.json: |
+    {
+      "/apps/chrome*": {
+        "url": "http://host.docker.internal:9912",
+        "is_chrome": true
+      }
+    }

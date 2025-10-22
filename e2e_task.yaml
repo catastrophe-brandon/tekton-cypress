@@ -28,6 +28,9 @@ spec:
       volumeMounts:
         - name: workdir
           mountPath: /var/workdir
+        - name: frontend-proxy-routes
+          mountPath: /config/routes.json
+          subPath: routes.json
     - image: quay.io/redhat-services-prod/hcc-platex-services-tenant/insights-chrome-dev:latest
       name: insights-chrome-dev
       command: ["caddy"]
@@ -53,6 +56,9 @@ spec:
     - name: chrome-dev-caddyfile
       configMap:
         name: chrome-dev-caddyfile
+    - name: frontend-proxy-routes
+      configMap:
+        name: frontend-proxy-routes
   stepTemplate:
     volumeMounts:
       - mountPath: /var/workdir
