@@ -35,7 +35,4 @@ spec:
           - ip: "127.0.0.1"
             hostnames:
               - "stage.foo.redhat.com"
-          - ip: "::1"
-            hostnames:
-              - "stage.foo.redhat.com"
 
