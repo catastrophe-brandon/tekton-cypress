@@ -8,7 +8,7 @@ data:
   routes.json: |
     {
       "/apps/chrome*": {
-        "url": "http://host.docker.internal:9912",
+        "url": "http://127.0.0.1:9912",
         "is_chrome": true
       }
     }
