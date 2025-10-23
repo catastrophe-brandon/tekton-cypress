@@ -23,6 +23,11 @@ spec:
   sidecars:
     - image: quay.io/redhat-user-workloads/hcc-platex-services-tenant/frontend-development-proxy:latest
       name: frontend-dev-proxy
+      env:
+        - name: HTTP_PROXY
+          value: $(params.HTTP_PROXY)
+        - name: HTTPS_PROXY
+          value: $(params.HTTP_PROXY)
       securityContext:
         privileged: false
       volumeMounts:
