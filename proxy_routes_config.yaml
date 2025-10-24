@@ -7,8 +7,12 @@ metadata:
 data:
   routes.json: |
     {
+      "/index.html": {
+        "url": "http://localhost:9912",
+        "is_chrome": true
+      },
       "/apps/chrome*": {
-        "url": "http://127.0.0.1:9912",
+        "url": "http://localhost:9912",
         "is_chrome": true
       }
     }

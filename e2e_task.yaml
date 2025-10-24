@@ -31,8 +31,6 @@ spec:
       securityContext:
         privileged: false
       volumeMounts:
-        - name: workdir
-          mountPath: /var/workdir
         - name: frontend-proxy-routes
           mountPath: /config/routes.json
           subPath: routes.json

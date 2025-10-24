@@ -58,7 +58,11 @@ spec:
             echo "HTTPS_PROXY is ${HTTPS_PROXY}"
             # Use getend because the `host` command ignores /etc/hosts
             getent hosts stage.foo.redhat.com
+            echo "Static assets from insights-chrome-dev"
+            curl http://stage.foo.redhat.com:9912 | grep chrome-root
             cd /workspace/output
+            echo "Page contents from frontend-dev-proxy"
+            curl -k -v -L https://stage.foo.redhat.com:1337/ | grep chrome-root
             sleep 2000
             whoami
             npm install
