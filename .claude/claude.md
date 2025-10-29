@@ -35,9 +35,17 @@ The Tekton pipeline (`e2e_pipeline.yaml`) orchestrates:
 - `caddy_config.yaml`: ConfigMap for insights-chrome-dev Caddyfile configuration
 - `proxy_routes_config.yaml`: ConfigMap for frontend-development-proxy routes.json configuration
 
-### Scripts
-- `start.sh`: Initializes Minikube with podman driver and installs Tekton
-- `run_pipeline.sh`: Applies ConfigMaps, pipeline definitions, and displays logs
+### Cluster Setup Scripts (`cluster_setup/`)
+- `start.sh`: Initializes Minikube with podman driver (40GB disk, cri-o runtime)
+- `install_tekton.sh`: Installs Tekton pipelines and git-clone task from Tekton Hub
+- `image_load.sh`: Pre-loads container images into Minikube to avoid Docker Hub rate limiting
+
+### Playwright Image (`playwright_image/`)
+- `Dockerfile`: Defines the Playwright test image (based on mcr.microsoft.com/playwright:v1.50.0-noble with bind9 utilities)
+- `build_and_push.sh`: Script to build and push the Playwright image to Quay.io
+
+### Execution Scripts
+- `run_pipeline.sh`: Validates environment variables, applies ConfigMaps, pipeline definitions, and follows logs
 
 ## Prerequisites
 
@@ -45,6 +53,7 @@ The Tekton pipeline (`e2e_pipeline.yaml`) orchestrates:
 - Podman (used as minikube driver)
 - kubectl
 - tkn (Tekton CLI)
+- envsubst (for environment variable substitution in pipeline runs)
 
 ## Getting Started
 
@@ -55,22 +64,33 @@ The Tekton pipeline (`e2e_pipeline.yaml`) orchestrates:
    export E2E_PROXY_URL="your-proxy-url"
    ```
 
-2. Start Minikube and install Tekton:
+2. Start Minikube:
    ```bash
-   ./start.sh
+   ./cluster_setup/start.sh
    ```
 
-3. Run the E2E pipeline:
+3. Install Tekton and required tasks:
+   ```bash
+   ./cluster_setup/install_tekton.sh
+   ```
+
+4. (Optional) Pre-load images to avoid Docker Hub rate limiting:
+   ```bash
+   ./cluster_setup/image_load.sh
+   ```
+
+5. Run the E2E pipeline:
    ```bash
    ./run_pipeline.sh
    ```
 
    This script will:
+   - Validate required environment variables (E2E_USER, E2E_PASSWORD, E2E_PROXY_URL)
    - Clean up previous pipeline/task runs
    - Apply the Caddy configuration ConfigMap
    - Apply the proxy routes configuration ConfigMap
    - Apply the E2E task and pipeline definitions
-   - Start the pipeline run
+   - Start the pipeline run with environment variable substitution
    - Follow the logs
 
 ## Configuration
@@ -127,11 +147,16 @@ The e2e-task uses multiple volumes:
 
 ### Minikube Disk Space
 
-Minikube's default disk size (20GB) may be insufficient. Start Minikube with increased disk space:
+Minikube's default disk size (20GB) may be insufficient. The `cluster_setup/start.sh` script automatically starts Minikube with 40GB disk space:
 
 ```bash
+minikube start --driver=podman --container-runtime=cri-o --disk-size=40g
+```
+
+If you need to manually reset Minikube:
+```bash
 minikube delete
-minikube start --driver=podman --disk-size=40g
+./cluster_setup/start.sh
 ```
 
 ### Playwright Configuration
@@ -139,6 +164,9 @@ minikube start --driver=podman --disk-size=40g
 The Playwright step:
 - Runs as root user (UID 0)
 - Uses the image: `quay.io/btweed/playwright_e2e:latest`
+  - Based on `mcr.microsoft.com/playwright:v1.50.0-noble`
+  - Includes bind9 DNS utilities for network diagnostics
+  - Can be rebuilt using `playwright_image/build_and_push.sh`
 - Executes tests from `/workspace/output` (the cloned source)
 - Has access to environment variables:
   - `HTTP_PROXY` / `HTTPS_PROXY`: Proxy configuration
@@ -162,3 +190,35 @@ frontend-dev-proxy (routes.json)
 ```
 
 The `host.docker.internal` hostname in the proxy routes allows the frontend-dev-proxy to communicate with the insights-chrome-dev sidecar running in the same pod.
+
+### Docker Hub Rate Limiting
+
+Docker Hub imposes aggressive rate limiting on image pulls. To avoid issues:
+
+1. The `cluster_setup/image_load.sh` script pre-loads critical images:
+   - `quay.io/btweed/playwright_e2e:latest`
+   - `quay.io/redhat-services-prod/hcc-platex-services-tenant/insights-chrome-dev:latest`
+
+2. Run this script after starting Minikube but before executing the pipeline:
+   ```bash
+   ./cluster_setup/image_load.sh
+   ```
+
+Note: You must be authenticated to Quay.io with podman for this script to work.
+
+### Building Custom Playwright Image
+
+To build and push a custom Playwright image:
+
+1. Set your Quay.io username:
+   ```bash
+   export QUAY_USER="your-quay-username"
+   ```
+
+2. Build and push:
+   ```bash
+   cd playwright_image
+   ./build_and_push.sh
+   ```
+
+This will build the image from `playwright_image/Dockerfile` and push it to `quay.io/$QUAY_USER/playwright_e2e:latest`.
