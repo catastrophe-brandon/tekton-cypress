@@ -15,8 +15,7 @@ if [ ! -n "${E2E_PROXY_URL}" ]; then
 	exit 1
 fi
 
-echo "Clearing out previous task run (if present)"
-yes | tkn taskrun delete e2e-task-run
+echo "Clearing out previous run (if present)"
 yes | tkn pipelinerun delete e2e-pipeline-run
 
 set -e
@@ -38,7 +37,7 @@ envsubst < e2e_pipeline_run.yaml | kubectl apply --filename -
 
 # View the logs of recent task runs
 echo "Waiting for pods to spin up..."
-sleep 10
+sleep 6
 
 echo "== PipelineRun Logs ==="
 tkn pipelinerun logs -f
