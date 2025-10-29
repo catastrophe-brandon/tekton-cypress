@@ -7,17 +7,37 @@ metadata:
 data:
   # The key here will be the filename inside the container
   Caddyfile: |
+    {
+      debug
+    }
+
     :9912 {
         root * /opt/app-root/src/build/stable
-        file_server
+
+        # Handle /apps/chrome* requests - strip prefix and serve
+        @app_match {
+            path /apps/chrome*
+        }
+        handle @app_match {
+            uri strip_prefix /apps/chrome
+            file_server {
+                browse
+            }
+        }
+
+        # Handle all other requests - serve files normally
+        handle {
+            file_server
+        }
+
         header {
-               Cache-Control "no-cache, no-store, must-revalidate"
-               Pragma "no-cache"
-               Expires "0"
-               }
+            Cache-Control "no-cache, no-store, must-revalidate"
+            Pragma "no-cache"
+            Expires "0"
+        }
         header {
-               Access-Control-Allow-Origin "*"
-               Access-Control-Allow-Methods "GET, POST, OPTIONS"
-               Access-Control-Allow-Headers "Content-Type"
-               }
-      }
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type"
+        }
+    }
