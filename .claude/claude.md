@@ -4,17 +4,17 @@ This repository contains a Tekton pipeline for running E2E Playwright tests loca
 
 ## Overview
 
-The project sets up a local Tekton pipeline environment to test the learning-resources application with E2E tests. The testing environment uses:
+The project sets up a local Tekton pipeline environment to test web applications with E2E tests. The testing environment uses:
 
-- **git-clone task**: Clones the learning-resources repository
-- **learning-resources sidecar**: Runs the application with developer changes
+- **git-clone task**: Clones the source repository containing E2E tests
+- **run-application sidecar**: Runs the application under test from a container image
 - **frontend-development-proxy sidecar**: Provides proxy access to resources from the stage environment
 - **insights-chrome-dev sidecar**: Serves chrome UI static assets locally on port 9912
 - **Playwright**: Executes E2E tests against the running application
 
 ## Architecture
 
-The Tekton pipeline (`e2e_pipeline.yaml`) orchestrates:
+The Tekton pipeline orchestrates:
 
 1. **fetch-source**: Clones the source repository using the git-clone task
 2. **e2e-test-run**: Executes the e2e-task which:
@@ -22,18 +22,16 @@ The Tekton pipeline (`e2e_pipeline.yaml`) orchestrates:
    - Uses sidecars:
      - `frontend-dev-proxy`: Proxies stage environment resources using custom routes configuration
      - `insights-chrome-dev`: Serves chrome UI assets on port 9912 using Caddy
-     - `run-learning-resources`: Runs the application from SOURCE_ARTIFACT image
+     - `run-application`: Runs the application from SOURCE_ARTIFACT image
 
 ## Files
 
 ### Core Pipeline Files
-- `e2e_pipeline.yaml`: Tekton Pipeline definition
-- `e2e_pipeline_run.yaml`: PipelineRun instance with specific parameters
-- `e2e_task.yaml`: Tekton Task definition for E2E testing
-
-### Configuration Files
-- `caddy_config.yaml`: ConfigMap for insights-chrome-dev Caddyfile configuration
-- `proxy_routes_config.yaml`: ConfigMap for frontend-development-proxy routes.json configuration
+- `shared-e2e-pipeline.yaml`: Combined file containing:
+  - Caddy ConfigMap for insights-chrome-dev Caddyfile configuration
+  - Tekton Task definition for E2E testing
+  - Tekton Pipeline definition
+- `repo-specific-pipelinerun.yaml`: PipelineRun instance with repository-specific parameters and custom proxy routes
 
 ### Cluster Setup Scripts (`cluster_setup/`)
 - `start.sh`: Initializes Minikube with podman driver (40GB disk, cri-o runtime)
@@ -45,7 +43,9 @@ The Tekton pipeline (`e2e_pipeline.yaml`) orchestrates:
 - `build_and_push.sh`: Script to build and push the Playwright image to Quay.io
 
 ### Execution Scripts
-- `run_pipeline.sh`: Validates environment variables, applies ConfigMaps, pipeline definitions, and follows logs
+- `run_pipeline.sh`: Validates environment variables, applies shared pipeline definition, and follows logs
+- `browse_locally.sh`: Helper script for local browsing
+- `forward.sh`: Port forwarding helper script
 
 ## Prerequisites
 
@@ -62,6 +62,8 @@ The Tekton pipeline (`e2e_pipeline.yaml`) orchestrates:
    export E2E_USER="your-test-username"
    export E2E_PASSWORD="your-test-password"
    export E2E_PROXY_URL="your-proxy-url"
+   export STAGE_ACTUAL_HOSTNAME="actual-stage-hostname.example.com"
+   export HCC_ENV_URL="https://actual.stage.redhat.com"
    ```
 
 2. Start Minikube:
@@ -85,23 +87,30 @@ The Tekton pipeline (`e2e_pipeline.yaml`) orchestrates:
    ```
 
    This script will:
-   - Validate required environment variables (E2E_USER, E2E_PASSWORD, E2E_PROXY_URL)
+   - Validate required environment variables (E2E_USER, E2E_PASSWORD, E2E_PROXY_URL, STAGE_ACTUAL_HOSTNAME)
    - Clean up previous pipeline/task runs
-   - Apply the Caddy configuration ConfigMap
-   - Apply the proxy routes configuration ConfigMap
-   - Apply the E2E task and pipeline definitions
-   - Start the pipeline run with environment variable substitution
+   - Apply the shared E2E pipeline definition (ConfigMap, Task, Pipeline)
+   - Apply the repository-specific PipelineRun with environment variable substitution
    - Follow the logs
 
 ## Configuration
 
 ### Pipeline Parameters
 
-- `branch-name`: Git branch to clone (default: `master`)
-- `repo-url`: Repository URL (default: `https://github.com/RedHatInsights/learning-resources.git`)
-- `SOURCE_ARTIFACT`: Container image containing the learning-resources application (default: `quay.io/redhat-services-prod/hcc-platex-services-tenant/learning-resources:latest`)
+- `branch-name`: Git branch to clone from the test repository
+- `repo-url`: Repository URL containing the E2E tests
+- `SOURCE_ARTIFACT`: Container image containing the application to test
 - `E2E_USER`: Username for E2E test authentication
 - `E2E_PASSWORD`: Password for E2E test authentication
+- `e2e_proxy`: HTTP proxy URL for external requests
+- `STAGE_ACTUAL_HOSTNAME`: Actual stage environment hostname (used in catch-all handler to bypass hostAliases DNS override)
+- `HCC_ENV_URL`: HCC environment URL (used for environment variable substitution in proxy configuration)
+- `proxy-routes-json`: Custom proxy routes configuration (Caddy directives format)
+- `e2e-tests-script`: Custom test execution script (optional override)
+- `PLAYWRIGHT_IMAGE`: Playwright container image (default: `quay.io/btweed/playwright_e2e:latest`)
+- `CHROME_DEV_IMAGE`: Chrome dev container image (default: `quay.io/redhat-services-prod/hcc-platex-services-tenant/insights-chrome-dev:latest`)
+- `PROXY_IMAGE`: Frontend proxy container image (default: `quay.io/redhat-user-workloads/hcc-platex-services-tenant/frontend-development-proxy:latest`)
+- `APP_PORT`: Application port (default: `8000`)
 
 ### Workspaces
 
@@ -113,21 +122,28 @@ The Tekton pipeline (`e2e_pipeline.yaml`) orchestrates:
 
 The e2e-task runs three sidecars alongside the Playwright test step:
 
-1. **frontend-dev-proxy**: Proxies requests to external resources
+1. **frontend-dev-proxy**: Proxies requests to external resources and sidecars
    - Image: `quay.io/redhat-user-workloads/hcc-platex-services-tenant/frontend-development-proxy:latest`
-   - Custom routes defined in `/config/routes.json` (mounted from `proxy_routes_config.yaml`)
-   - Routes `/apps/chrome*` to `http://host.docker.internal:9912` with chrome HTML fallback enabled
+   - Serves TLS on port 1337 for `stage.foo.redhat.com`
+   - Custom routes defined in `/config/routes` (written dynamically from `PROXY_ROUTES_JSON` parameter)
+   - Performs environment variable substitution in Caddyfile (`$LOCAL_ROUTES`, `$HCC_ENV_URL`, etc.)
+   - Waits for route configuration to be written before starting
+   - Waits for insights-chrome-dev (port 9912) and run-application (port 8000) to be ready before starting
+   - Enables debug mode and admin API on port 2019
 
 2. **insights-chrome-dev**: Serves chrome UI static assets
    - Image: `quay.io/redhat-services-prod/hcc-platex-services-tenant/insights-chrome-dev:latest`
    - Runs Caddy web server on port 9912
-   - Configuration in `/Caddyfile` (mounted from `caddy_config.yaml`)
+   - Configuration in `/etc/caddy/Caddyfile` (mounted from ConfigMap in `shared-e2e-pipeline.yaml`)
    - Serves files from `/opt/app-root/src/build/stable`
+   - Strips `/apps/chrome` prefix for SPA routing
    - CORS enabled for cross-origin access
 
-3. **run-learning-resources**: Runs the application under test
+3. **run-application**: Runs the application under test
    - Image: Specified by `SOURCE_ARTIFACT` parameter
-   - Contains the learning-resources application
+   - Dynamically patches its Caddyfile to add learning-resources routes for multiple service paths
+   - Runs Caddy web server on port 8000 serving from `/srv/dist`
+   - Handles routes: `/learning-resources/*`, `/settings/learning-resources/*`, `/openshift/learning-resources/*`, `/ansible/learning-resources/*`, `/insights/learning-resources/*`, `/edge/learning-resources/*`, `/iam/learning-resources/*`
 
 ### Volume Mounts
 
@@ -137,11 +153,14 @@ The e2e-task uses multiple volumes:
   - The Playwright test step
   - All three sidecars
 
-- **chrome-dev-caddyfile**: ConfigMap mounted in insights-chrome-dev sidecar
-  - Provides Caddy server configuration at `/Caddyfile`
+- **chrome-dev-caddyfile**: ConfigMap volume mounted in insights-chrome-dev sidecar
+  - Provides Caddy server configuration at `/etc/caddy/Caddyfile`
+  - Defined inline at the top of `shared-e2e-pipeline.yaml`
 
-- **frontend-proxy-routes**: ConfigMap mounted in frontend-dev-proxy sidecar
-  - Provides routing configuration at `/config/routes.json`
+- **proxy-config**: EmptyDir volume mounted in frontend-dev-proxy sidecar
+  - Written dynamically by the `setup-proxy-routes` step
+  - Contains routing configuration at `/config/routes`
+  - Populated from the `PROXY_ROUTES_JSON` parameter (customizable per repository)
 
 ## Important Notes
 
@@ -181,23 +200,47 @@ The Playwright step:
 The test environment uses a multi-container setup with the following network flow:
 
 ```
-Playwright Tests
+Playwright Tests (using stage.foo.redhat.com)
     ↓
-frontend-dev-proxy (routes.json)
+    (hostAliases redirect to 127.0.0.1:1337)
     ↓
-    ├─→ /apps/chrome* → insights-chrome-dev:9912 (Caddy)
-    └─→ Other routes → External stage environment
+frontend-dev-proxy:1337 (Caddy with custom routes)
+    ↓
+    ├─→ /apps/chrome* → 127.0.0.1:9912 (insights-chrome-dev Caddy)
+    ├─→ /apps/learning-resources* → 127.0.0.1:8000 (run-application Caddy)
+    ├─→ Other /learning-resources/* variants → 127.0.0.1:9912 (configurable via proxy-routes-json)
+    └─→ Catch-all routes → https://${STAGE_ACTUAL_HOSTNAME} (via HTTP_PROXY to real stage)
 ```
 
-The `host.docker.internal` hostname in the proxy routes allows the frontend-dev-proxy to communicate with the insights-chrome-dev sidecar running in the same pod.
+Note: Routes are fully customizable via the `proxy-routes-json` parameter in Caddy directive format.
 
-### Docker Hub Rate Limiting
+**Key architectural points:**
 
-Docker Hub imposes aggressive rate limiting on image pulls. To avoid issues:
+- Tests use `stage.foo.redhat.com` (configured in test code)
+- `hostAliases` in PodSpec redirect `stage.foo.redhat.com` to `127.0.0.1` for all containers
+- Frontend-dev-proxy serves TLS on port 1337 with certs for `stage.foo.redhat.com`
+- All sidecars run in the same pod, allowing direct communication via `127.0.0.1`
+- Frontend-dev-proxy performs environment variable substitution in its Caddyfile before starting
+- Catch-all handler uses `STAGE_ACTUAL_HOSTNAME` (not in hostAliases) to reach the real stage environment through `HTTP_PROXY`
+
+### Dynamic Configuration
+
+The pipeline uses a dynamic configuration approach:
+
+1. **Proxy Routes Configuration**: The `setup-proxy-routes` step (using busybox) writes the `PROXY_ROUTES_JSON` parameter to `/config/routes` before the sidecars start
+2. **Repository-Specific Routes**: Each repository can customize routing in `repo-specific-pipelinerun.yaml` by overriding the `proxy-routes-json` parameter with Caddy directives
+3. **Startup Synchronization**: The frontend-dev-proxy waits up to 60 seconds for the routes configuration file to be available before starting
+4. **Environment Variable Substitution**: The frontend-dev-proxy performs environment variable substitution in its Caddyfile, replacing placeholders like `{$LOCAL_ROUTES}`, `{$HCC_ENV_URL}`, `{$HCC_ENV}`, and `{$STAGE_ACTUAL_HOSTNAME}`
+5. **Readiness Checks**: The frontend-dev-proxy waits for both insights-chrome-dev (port 9912) and run-application (port 8000) to become ready before starting Caddy
+
+### Image Pre-loading
+
+To avoid potential rate limiting issues when pulling container images, you can pre-load images into Minikube:
 
 1. The `cluster_setup/image_load.sh` script pre-loads critical images:
    - `quay.io/btweed/playwright_e2e:latest`
    - `quay.io/redhat-services-prod/hcc-platex-services-tenant/insights-chrome-dev:latest`
+   - `busybox:latest`
 
 2. Run this script after starting Minikube but before executing the pipeline:
    ```bash
@@ -222,3 +265,28 @@ To build and push a custom Playwright image:
    ```
 
 This will build the image from `playwright_image/Dockerfile` and push it to `quay.io/$QUAY_USER/playwright_e2e:latest`.
+
+## Customizing for Different Repositories
+
+The pipeline is designed to be reusable across different repositories. To customize for a new repository:
+
+1. **Copy and edit `repo-specific-pipelinerun.yaml`**:
+   - Update `branch-name` and `repo-url` to point to your repository
+   - Update `SOURCE_ARTIFACT` to point to your application image
+   - Customize `proxy-routes-json` to match your application's routing needs (using Caddy directive format)
+   - Ensure environment variables are set: `E2E_USER`, `E2E_PASSWORD`, `E2E_PROXY_URL`, `STAGE_ACTUAL_HOSTNAME`, `HCC_ENV_URL`
+
+2. **Optional: Override default images**:
+   - Override `PLAYWRIGHT_IMAGE`, `CHROME_DEV_IMAGE`, or `PROXY_IMAGE` parameters if using custom images
+   - Override `APP_PORT` if your application runs on a different port
+
+3. **Optional: Override the test script**:
+   - Uncomment and customize the `e2e-tests-script` parameter to run custom test commands
+   - Default script runs `npm install` and `npx playwright test`
+
+4. **Apply the pipeline**:
+   ```bash
+   ./run_pipeline.sh
+   ```
+
+The `shared-e2e-pipeline.yaml` file remains unchanged and can be shared across all repositories.
